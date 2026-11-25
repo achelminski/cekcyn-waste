@@ -1,0 +1,81 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Harmonogram wywozu odpadów",
+        "description": "Integracja wyszuka w BIP harmonogram na bieżący lub kolejny rok i sprawdzi, czy zawiera miejscowość.",
+        "data": {
+          "locality": "Miejscowość",
+          "bip_host": "Adres BIP",
+          "menu_id": "Identyfikator działu z harmonogramami"
+        },
+        "data_description": {
+          "menu_id": "Liczba z adresu strony działu, np. m,611,… → 611"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nie można połączyć się z BIP.",
+      "no_schedule": "W BIP nie ma harmonogramu na bieżący ani kolejny rok.",
+      "locality_not_found": "Harmonogram nie pasuje do miejscowości: {error}",
+      "unknown": "Nieoczekiwany błąd — szczegóły w logu."
+    },
+    "abort": {
+      "already_configured": "Ta miejscowość jest już skonfigurowana."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcje",
+        "data": {
+          "scan_interval": "Interwał sprawdzania BIP"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "tworzywa_metale": {
+        "name": "Tworzywa i metale"
+      },
+      "papier": {
+        "name": "Papier"
+      },
+      "szklo": {
+        "name": "Szkło"
+      },
+      "bio": {
+        "name": "Bio"
+      },
+      "zmieszane": {
+        "name": "Zmieszane"
+      },
+      "popiol": {
+        "name": "Popiół"
+      },
+      "tekstylia": {
+        "name": "Tekstylia"
+      },
+      "gabaryty": {
+        "name": "Gabaryty"
+      },
+      "next_pickup": {
+        "name": "Najbliższy wywóz"
+      },
+      "source": {
+        "name": "Źródło"
+      }
+    }
+  },
+  "issues": {
+    "missing_schedule": {
+      "title": "Brak harmonogramu odpadów {locality} na {year}",
+      "description": "W BIP nie znaleziono harmonogramu wywozu odpadów komunalnych na rok {year}. Kalendarz nie pokaże terminów, dopóki gmina go nie opublikuje."
+    },
+    "parse_error": {
+      "title": "Nie udało się odczytać harmonogramu odpadów {locality}",
+      "description": "Odczyt nowego harmonogramu z BIP nie powiódł się, integracja korzysta z ostatnich poprawnych danych. Błąd: {error}"
+    }
+  }
+}

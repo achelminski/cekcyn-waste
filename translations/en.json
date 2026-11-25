@@ -1,0 +1,81 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Waste collection schedule",
+        "description": "The integration looks up the current or next year schedule in the BIP and checks that it contains the locality.",
+        "data": {
+          "locality": "Locality",
+          "bip_host": "BIP host",
+          "menu_id": "Schedules menu id"
+        },
+        "data_description": {
+          "menu_id": "Number from the section URL, e.g. m,611,… → 611"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the BIP.",
+      "no_schedule": "No schedule for the current or next year in the BIP.",
+      "locality_not_found": "Schedule does not match the locality: {error}",
+      "unknown": "Unexpected error — see the log."
+    },
+    "abort": {
+      "already_configured": "This locality is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "data": {
+          "scan_interval": "BIP check interval"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "tworzywa_metale": {
+        "name": "Plastics and metals"
+      },
+      "papier": {
+        "name": "Paper"
+      },
+      "szklo": {
+        "name": "Glass"
+      },
+      "bio": {
+        "name": "Bio"
+      },
+      "zmieszane": {
+        "name": "Mixed"
+      },
+      "popiol": {
+        "name": "Ash"
+      },
+      "tekstylia": {
+        "name": "Textiles"
+      },
+      "gabaryty": {
+        "name": "Bulky waste"
+      },
+      "next_pickup": {
+        "name": "Next pickup"
+      },
+      "source": {
+        "name": "Source"
+      }
+    }
+  },
+  "issues": {
+    "missing_schedule": {
+      "title": "No waste schedule for {locality} in {year}",
+      "description": "No municipal waste schedule for {year} was found in the BIP. The calendar shows no dates until it is published."
+    },
+    "parse_error": {
+      "title": "Could not read the waste schedule for {locality}",
+      "description": "Reading the new schedule from the BIP failed; the last valid data is still used. Error: {error}"
+    }
+  }
+}
