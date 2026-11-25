@@ -76,6 +76,10 @@
     "parse_error": {
       "title": "Nie udało się odczytać harmonogramu odpadów {locality}",
       "description": "Odczyt nowego harmonogramu z BIP nie powiódł się, integracja korzysta z ostatnich poprawnych danych. Błąd: {error}"
+    },
+    "extra_files": {
+      "title": "Harmonogram odpadów {year} ma dodatkowe załączniki",
+      "description": "Artykuł z harmonogramem na {year} zawiera kilka plików PDF: {files}. Kalendarz korzysta z tabel; dodatkowe pliki bywają korektami opisanymi zwykłym tekstem (np. zmiana jednego terminu), których integracja nie wczytuje. Sprawdź je: {url}"
     }
   }
 }

@@ -76,6 +76,10 @@
     "parse_error": {
       "title": "Could not read the waste schedule for {locality}",
       "description": "Reading the new schedule from the BIP failed; the last valid data is still used. Error: {error}"
+    },
+    "extra_files": {
+      "title": "Waste schedule {year} has extra attachments",
+      "description": "The {year} schedule article contains several PDF files: {files}. The calendar uses the tables; extra files are sometimes corrections written as plain text (e.g. one changed date), which the integration does not read. Please check them: {url}"
     }
   }
 }

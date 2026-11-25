@@ -24,6 +24,7 @@ from .const import (
     CONF_SCAN_INTERVAL,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    ISSUE_EXTRA_FILES,
     ISSUE_MISSING,
     ISSUE_PARSE,
     STORAGE_VERSION,
@@ -113,24 +114,24 @@ class WasteCoordinator(DataUpdateCoordinator[dict]):
 
     async def _update_year(self, year: int, article: dict) -> None:
         detail = await self.client.article(article["id"])
-        att = parser.pdf_attachment(detail)
-        if att is None:
+        atts = parser.pdf_attachments(detail)
+        if not atts:
             raise parser.ParseError("artykuł nie ma załącznika PDF")
         source = {
             "article_id": article["id"],
-            "attachment_id": int(att["id"]),
-            "size": att.get("size"),
-            "name": att.get("name"),
+            "attachments": parser.attachments_key(atts),
+            "name": ", ".join(str(att.get("name")) for att in atts),
             "title": article["title"],
             "url": self.client.article_url(article["link"]),
         }
         current = self.state["schedules"].get(str(year), {}).get("source", {})
-        if (current.get("attachment_id"), current.get("size")) == (source["attachment_id"], source["size"]):
-            return  # ten sam załącznik — bez ponownego pobierania
-        pdf = await self.client.file(source["attachment_id"])
+        if current.get("attachments") == source["attachments"]:
+            return  # te same załączniki — bez ponownego pobierania
+        # kilka PDF-ów = harmonogram + korekty (2020: „zmiana Wysoka i Iwiec.pdf”)
+        pdfs = [await self.client.file(int(att["id"])) for att in atts]
         try:
             group, pickups = await self.hass.async_add_executor_job(
-                parser.parse_municipal_pdf, pdf, year, self.locality
+                parser.parse_municipal_pdfs, pdfs, year, self.locality
             )
         except parser.ParseError:
             raise
@@ -146,6 +147,28 @@ class WasteCoordinator(DataUpdateCoordinator[dict]):
             self.locality, year, len(pickups), source["name"], group,
         )
 
+    async def _bulky_text(self, article_id: int, detail: dict) -> str:
+        """Tekst ogłoszenia: treść artykułu (od 2025), a gdy nie ma w niej dat — tekst PDF-ów
+        (2018–2023). Tekst PDF trzymany w stanie, pobierany ponownie tylko przy zmianie załączników."""
+        text = parser.html_to_text(detail.get("content", ""))
+        if parser.has_bulky_dates(text):
+            return text
+        atts = parser.pdf_attachments(detail)
+        if not atts:
+            return text
+        key = parser.attachments_key(atts)
+        cache = self.state.setdefault("bulky_pdf_text", {})
+        cached = cache.get(str(article_id))
+        if cached and cached.get("attachments") == key:
+            return cached["text"]
+        pdfs = [await self.client.file(int(att["id"])) for att in atts]
+        try:
+            texts = [await self.hass.async_add_executor_job(parser.pdf_text, pdf) for pdf in pdfs]
+        except Exception as err:  # noqa: BLE001
+            raise parser.ParseError(f"nie da się odczytać PDF ({type(err).__name__}: {err})") from err
+        cache[str(article_id)] = {"attachments": key, "text": "\n".join(texts)}
+        return cache[str(article_id)]["text"]
+
     async def _update_bulky(self, articles: list[dict], today: date) -> None:
         """Gabaryty z artykułów z bieżącego/kolejnego roku; treść jest krótka, więc czytana co cykl."""
         entries: list[dict] = []
@@ -153,7 +176,8 @@ class WasteCoordinator(DataUpdateCoordinator[dict]):
             if article["year"] < today.year:
                 continue
             detail = await self.client.article(article["id"])
-            for item in parser.parse_bulky_html(detail.get("content", ""), self.locality):
+            text = await self._bulky_text(article["id"], detail)
+            for item in parser.parse_bulky_text(text, self.locality):
                 entries.append(
                     {
                         "date": item["date"].isoformat(),
@@ -166,6 +190,8 @@ class WasteCoordinator(DataUpdateCoordinator[dict]):
         fresh_ids = {a["id"] for a in articles if a["year"] >= today.year}
         kept = [b for b in self.state["bulky"] if b["article_id"] not in fresh_ids]
         self.state["bulky"] = sorted(kept + entries, key=lambda b: b["date"])
+        cache = self.state.get("bulky_pdf_text", {})
+        self.state["bulky_pdf_text"] = {k: v for k, v in cache.items() if int(k) in fresh_ids}
 
     def _prune(self, today: date) -> None:
         """Zostaw rok poprzedni, bieżący i kolejny."""
@@ -189,6 +215,23 @@ class WasteCoordinator(DataUpdateCoordinator[dict]):
                 )
         else:
             ir.async_delete_issue(self.hass, DOMAIN, missing_id)
+
+        # Dodatkowe PDF-y w artykule bywają korektami pisanymi prozą (2020: „odbiór popiołu
+        # odbędzie się 15.04”) — nie da się ich wiarygodnie wczytać, więc tylko sygnalizujemy.
+        for year in (today.year, today.year + 1):
+            extra_id = f"{ISSUE_EXTRA_FILES}_{entry_id}_{year}"
+            source = self.state["schedules"].get(str(year), {}).get("source", {})
+            if len(source.get("attachments") or []) > 1:
+                ir.async_create_issue(
+                    self.hass, DOMAIN, extra_id,
+                    is_fixable=False, severity=ir.IssueSeverity.WARNING,
+                    translation_key=ISSUE_EXTRA_FILES,
+                    translation_placeholders={
+                        "year": str(year), "files": source.get("name", ""), "url": source.get("url", ""),
+                    },
+                )
+            else:
+                ir.async_delete_issue(self.hass, DOMAIN, extra_id)
 
         parse_id = f"{ISSUE_PARSE}_{entry_id}"
         if parse_errors:

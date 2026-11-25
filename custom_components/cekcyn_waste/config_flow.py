@@ -87,12 +87,12 @@ class WasteConfigFlow(ConfigFlow, domain=DOMAIN):
         article = found["municipal"].get(year) or found["municipal"].get(year + 1)
         if article is None:
             raise _NoSchedule
-        att = parser.pdf_attachment(await client.article(article["id"]))
-        if att is None:
+        atts = parser.pdf_attachments(await client.article(article["id"]))
+        if not atts:
             raise _NoSchedule
-        pdf = await client.file(int(att["id"]))
+        pdfs = [await client.file(int(att["id"])) for att in atts]
         await self.hass.async_add_executor_job(
-            parser.parse_municipal_pdf, pdf, article["year"], locality
+            parser.parse_municipal_pdfs, pdfs, article["year"], locality
         )
 
     @staticmethod

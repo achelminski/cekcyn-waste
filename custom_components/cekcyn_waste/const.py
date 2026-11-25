@@ -17,3 +17,4 @@ STORAGE_VERSION = 1
 
 ISSUE_MISSING = "missing_schedule"
 ISSUE_PARSE = "parse_error"
+ISSUE_EXTRA_FILES = "extra_files"
